@@ -52,3 +52,9 @@
 	# Static IP is in this format: ip=<STATIC_IP>::<GATEWAY>:<SUBNET_MASK>
 	fips=1 inst.ks=http://IP:PORT/ks_8_minimal.txt  ip=192.168.1.5::192.168.1.1:255.255.255.0
 	```
+	
+	
+## IMPORTANT
+- Kickstart files must have Unix Line Endings (LF), **NOT** Windows Line Endings (CRLF)
+	- On Windows, if using Notepad++, go to `Edit > EOL Conversion > Unix (LF)`
+	- On Linux, run `dos2unix <ks.txt>`

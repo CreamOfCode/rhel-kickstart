@@ -1,0 +1,197 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # #
+#### MINIMAL RHEL 8 ####
+# 
+# Hardware Allocations
+# - 2 CPU cores, 2 GB RAM, 10 GB disk
+#
+# USAGE:  press E on boot entry, and append these params to the 'vmlinuz' line:
+## "fips=1 inst.ks=http://IP:PORT/ks.txt"
+## "fips=1 inst.ks=http://192.168.1.1:8000/ks.txt"
+#
+# /boot - 1 GiB (ext4)
+# /boot/efi - 200 MiB (efi)
+# / - 5 GiB (ext4)
+# /home - 1 GiB (ext4)
+# swap - 1 GiB (swap)
+# /freespace - Fills Remaining Part of Disk (ext4)
+#
+#
+# Generate USER and ROOTPW --iscrypted passwords with:
+## python3 -c "from passlib.hash import sha512_crypt; pw=sha512_crypt.hash('DEFAULTDEFAULTDEFAULT', rounds=5000); print(pw)"
+#
+# Generate BOOTLOADER --iscrypted password with:
+## grub2-mkpasswd-pbkdf2 --iteration-count=210000 --salt=128
+#
+# Set ntpservers with:
+## TIMEZONE: --ntpservers=A,B,C
+#
+# Use Static IP with:
+## NETWORK:  network --bootproto=static --onboot=yes --noipv6 --ethtool="wol d" --device=link --ip=192.168.1.5 --netmask=255.255.255.0 --gateway=192.168.1.1 --nameserver=192.168.2.1,192.168.3.1
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # #
+
+################################################################################
+
+text
+firstboot --disable
+reboot --eject
+
+cdrom
+repo --name="AppStream" --baseurl=file:///run/install/sources/mount-0000-cdrom/AppStream
+
+lang en_US.UTF-8
+keyboard --xlayouts='us'
+timezone America/New_York --utc --nontp
+
+# Disable IPv6 and Wake-on-LAN
+network --bootproto=dhcp --onboot=yes --noipv6 --ethtool="wol d" --device=link
+
+network --hostname=localhost.localdomain
+
+firewall --enabled --remove-service=cockpit --service=ssh
+# services --disabled=cups --enabled=
+
+selinux --enforcing
+skipx
+eula --agreed
+
+################################################################################
+
+rootpw --lock
+# *** TODO: CHANGE DEFAULT ADMIN USER PASSWORD ****
+user --name=admin --uid=1000 --gid=1000 --groups=wheel,sshusers --iscrypted --password=$6$daWLD3Fmsf1WQA9t$ee0SrE2fHfGyLZ2fkzPDunqSCePv4Hv.qoC5ST4ByXWMpQKhuirogoRwNb9qWc3Vh.jpYqwWGDQrbinpsQw8//
+
+
+sshkey --username=admin "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCgey+WSDW4/ahVyvH47JdPmQXq1XyegA+gY+2i9jjc1o0mYQFGm9L+hotxNCC9M5k64Q8wL5yz+8rje+f5NHKvfv+wDo9xgygtO1GeuHlOAiZCIiYYVHRvpBSBORG+XSNPX4qq71v4qpu1BJkLqNGFGI1pflh23qoV32SpewQafDI6qqIo4RY1rnS1h+muV+Fmlvh7YzJv5HdmYT8FlRc1NDO8NCuGpbTxb/FC1Mms3CmohZ3Yj9RhKpDY0UUj2jT9yCFyZwA6anOak+YmPl6U0CWxU45SEBKo8LFdvUeX/QVWp9YeXg/PEeKVEa9heCka4bY36634oPCO/bU35Cw+WKanUPFNXDI/vrg78KUZ4FVTbj79IV8OnHER4taWnpHr40Z1QqmEgVmMdx5i0bDyCaipiBDEDyIx8aRQEgHCe8VMYCf28gy06d786QsmX8V392ctpYIT0gSMxqivjiQxZh4QnlCYeIphXLisKO+OeAG9P4pYg4wtlkCEhArt0teXENOwwcDvaD2/4QyrXzrjC7ltf/uuPHUstH41r+QVJ7PvwTKU5YoJLZD5odMhFsdeJCerGG5K2schy2HpLpSADmRZZrX8Hzx0gr9VK+rQnpmC/skS1DeTdE61heBKNhnHV/gVQ/Xc1jye4ZzGabKWAEqfyQzSzzqZOHxZfjl2cw=="
+
+################################################################################
+
+%anaconda
+pwpolicy root --minlen=15 --minquality=1 --strict --notempty --nochanges
+pwpolicy admin --minlen=15 --minquality=1 --strict --notempty --changesok
+pwpolicy luks --minlen=15 --minquality=1 --strict --notempty --changesok
+%end
+
+################################################################################
+
+ignoredisk --only-use=sda
+
+zerombr
+clearpart --all --disklabel=gpt
+
+# Kernel Options per V-230491, V-230469, V-230468, V-230279, V-230278, V-230277, V-230223
+# *** TODO: CHANGE DEFAULT GRUB PASSWORD ***
+bootloader --location=mbr --append="fips=1 page_poison=1 vsyscall=none slub_debug=P audit=1 audit_backlog_limit=8192 pti=on" --iscrypted --password=grub.pbkdf2.sha512.210000.23E3209CE3AA95C40A912BCA6C93197C005B9529AE42717F719381E5A0B2CC0574EC432B820CD8E4B5C7495AF9F11575CA0698A4A6A71CB35E625BE9D839A70E1C2EC372FF7E72C59D7EDDDA1A3F7E02CF940CBED78EFA9E8DE72D7CD832E524E33F0C40B9D7D49BAC72D38F03A4B5386381098A6C65765AA932E270816AAC53.8A91C58BE0BD46E0FCD8DBD83A63666A6EB90DAEE3BB9D61FFC26A6F3C37145444F8535CD1D5CEBD11F09CB6A644D308B71EA1FBAB63990D7426F77BE7CACE67
+
+################################################################################
+
+part /boot --size=1024 --fstype=ext4 --ondisk=sda
+part /boot/efi --size=200 --ondisk=sda --fstype=efi --fsoptions="umask=0077,shortname=winnt"
+
+# *** TODO: CHANGE DEFAULT LUKS PASSWORD ***
+part pv.01 --size=100 --grow --ondisk=sda --fstype=lvmpv --passphrase="DEFAULTDEFAULTDEFAULT" --encrypted --luks-version=luks2
+
+################################################################################
+
+volgroup vg1 --pesize=4096 pv.01
+
+################################################################################
+
+logvol / --vgname=vg1 --name=lv_root --size=5120 --fstype=ext4
+logvol /home --vgname=vg1 --name=lv_home --size=1024 --fstype=ext4 --fsoptions="nodev,nosuid,noexec"
+logvol swap --vgname=vg1 --name=lv_swap --size=1024 --fstype=swap --fsoptions="nodev,nosuid,noexec"
+logvol /freespace --vgname=vg1 --name=lv_freespace --size=1 --grow --fstype=ext4 --fsoptions="nodev,nosuid,noexec"
+
+################################################################################
+
+%packages
+@^minimal-environment
+mailx # V-256974
+openssh-server # V-244549
+usbguard # V-244547
+tmux # V-244537
+rng-tools # V-244527
+aide # V-251710
+fapolicyd # V-230523
+firewalld # V-230505
+rsyslog-gnutls # V-230478
+rsyslog # V-230477
+audit # V-230411
+opensc # V-230275
+openssl-pkcs11 # V-230273
+policycoreutils # V-230241
+
+chrony # NTP
+vim-enhanced # CONVENIENCE
+wget # CONVENIENCE
+yum-utils # CONVENIENCE
+
+-tuned # V-230561 - REMOVED
+-iprutils # V-230560 - REMOVED
+-gssproxy # V-230559 - REMOVED
+-tftp-server # V-230533 - REMOVED
+-rsh-server # V-230492 - REMOVED
+-telnet-server # V-230487 - REMOVED
+-sendmail # V-230489 - REMOVED
+-vsftpd # V-230558 - REMOVED
+-xorg-x11-server-Xorg # V-230553 - REMOVED
+-xorg-x11-server-common # V-230553 - REMOVED
+-xorg-x11-server-utils # V-230553 - REMOVED
+-xorg-x11-server-Xwayland # V-230553 - REMOVED
+-abrt # V-230488 - REMOVED
+-abrt-addon-ccpp # V-230488 - REMOVED
+-abrt-addon-coredump-helper # V-230488 - REMOVED
+-abrt-addon-kerneloops # V-230488 - REMOVED
+-abrt-addon-pstoreoops # V-230488 - REMOVED
+-abrt-addon-vmcore # V-230488 - REMOVED
+-abrt-addon-xorg # V-230488 - REMOVED
+-abrt-cli-ng # V-230488 - REMOVED
+-abrt-console-notification # V-230488 - REMOVED
+-abrt-dbus # V-230488 - REMOVED
+-abrt-gui # V-230488 - REMOVED
+-abrt-gui-libs # V-230488 - REMOVED
+-abrt-gui-libs # V-230488 - REMOVED
+-abrt-java-connector # V-230488 - REMOVED
+-abrt-libs # V-230488 - REMOVED
+-abrt-libs # V-230488 - REMOVED
+-abrt-plugin-machine-id # V-230488 - REMOVED
+-abrt-plugin-sosreport # V-230488 - REMOVED
+-abrt-tui # V-230488 - REMOVED
+-abrt-cli # V-230488 - REMOVED
+-abrt-desktop # V-230488 - REMOVED
+-krb5-server # V-237640 - REMOVED
+-krb5-workstation # V-230239- REMOVED
+
+-plymouth # REMOVED to disable rhgp and quiet bootloader args
+
+%end
+
+
+################################################################################
+
+# Disable kdump
+%addon com_redhat_kdump --disable --reserve-mb=0
+%end
+
+################################################################################
+
+%post --erroronfail --interpreter=/bin/bash --logfile=/root/ks-post.log
+set -x
+
+# Saves journald logs
+/bin/mkdir -p /var/log/journal;
+/bin/systemd-tmpfiles --create --prefix /var/log/journal;
+
+# Initialize Aide per V-251710
+/sbin/aide --init;
+/bin/mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz;
+
+# Remove insights-client logon message
+/usr/bin/rm /etc/motd.d/insights-client;
+
+# CONVENIENCE
+/usr/bin/cat <<'EOF' > /etc/tmux.conf
+setw -g mode-keys vi
+EOF
+
+%end

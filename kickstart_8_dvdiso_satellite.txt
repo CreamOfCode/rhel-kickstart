@@ -1,19 +1,32 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # #
-#### MINIMAL RHEL 8 ####
+#### RHEL 8 - Satellite Server ####
 # 
 # Hardware Allocations
-# - 2 CPU cores, 2 GB RAM, 10 GB disk
+# - 4 CPU cores, 20 GB RAM, 800 GB disk
 #
 # USAGE:  press E on boot entry, and append these params to the 'vmlinuz' line:
-## "fips=1 inst.ks=http://IP:PORT/ks.txt"
+## "fips=1 inst.ks=http://IP:PORT/ks_8_satellite_server.txt"
+# For Static IP,
+## "fips=1 inst.ks=http://IP:PORT/ks_8_satellite_server.txt  ip=192.168.1.5::192.168.1.1:255.255.255.0"
 #
 # /boot - 1 GiB (ext4)
 # /boot/efi - 200 MiB (efi)
+# 
 # / - 5 GiB (ext4)
-# /home - 1 GiB (ext4)
-# swap - 1 GiB (swap)
-# /freespace - Fills Remaining Part of Disk (ext4)
+# /home - 2 GiB (ext4) - "nodev,noexec,nosuid"
+# swap - 1 GiB (swap) - "nodev,noexec,nosuid"
+# /freespace - Grow to fill Disk freespace (ext4)
 #
+# /var - 4 GiB (ext4) - "nodev,nosuid,noexec"
+# /var/log - 4 GiB (ext4) - "nodev,nosuid,noexec"
+# /var/log/audit - 10 GiB (ext4) - "nodev,nosuid,noexec"
+# /var/tmp - 1 GiB (ext4) - "nodev,nosuid,exec" - "exec" is an EXEMPTION needed for Satellite server's Ansible
+# /tmp - 2 GiB (ext4) - "nodev,nosuid,exec" - "exec" is an EXEMPTION needed for Satellite server
+# /opt - (ext4) - "nodev,nosuid,exec" - "exec" is an EXEMPTION needed for /opt/puppetlabs/bin/* and /opt/scc/*
+#
+# /var/lib/pulp - "nodev,nosuid,noexec"
+# /var/lib/mongodb - "nodev,nosuid,noexec"
+# /var/lib/qpidd - "nodev,nosuid,noexec"
 #
 # Generate USER and ROOTPW --iscrypted passwords with:
 ## python3 -c "from passlib.hash import sha512_crypt; pw=sha512_crypt.hash('DEFAULTDEFAULTDEFAULT', rounds=5000); print(pw)"
